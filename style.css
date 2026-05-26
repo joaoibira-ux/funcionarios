@@ -78,6 +78,12 @@ header {
   color: #1565c0;
 }
 
+.card-salario.por-producao {
+  color: #e65100;
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
 .card-meta {
   display: flex;
   gap: 12px;

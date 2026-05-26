@@ -7,7 +7,7 @@ const firebaseConfig = {
   appId: "1:472820177992:web:2e1b98c9f6ac3a823d0c7d"
 };
 
-const VERSAO = "1.0";
+const VERSAO = "1.1";
 document.getElementById("versao-app").textContent = "v" + VERSAO;
 
 firebase.initializeApp(firebaseConfig);
@@ -58,7 +58,7 @@ function render(docs) {
         <div class="card-nome">${escHtml(f.nome)}</div>
         <div class="card-info">
           <span class="badge">${escHtml(f.cargo)}</span>
-          <span class="card-salario">${fmtMoeda(f.salario)}</span>
+          <span class="card-salario ${f.cargo === 'PINTOR' ? 'por-producao' : ''}">${f.cargo === 'PINTOR' ? 'Por produção' : fmtMoeda(f.salario)}</span>
         </div>
         <div class="card-meta">
           <span>Admissão: ${escHtml(f.admissao)}</span>
@@ -82,7 +82,8 @@ document.getElementById("form").addEventListener("submit", function(e) {
   const nome     = document.getElementById("f-nome").value.trim();
   const cargo    = document.getElementById("f-cargo").value.trim();
   const admissao = document.getElementById("f-admissao").value.trim();
-  const salario  = parseMoeda(document.getElementById("f-salario").value);
+  const isPintor = cargo.toUpperCase() === "PINTOR";
+  const salario  = isPintor ? 0 : parseMoeda(document.getElementById("f-salario").value);
   const telefone = document.getElementById("f-telefone").value.trim();
   const obs      = document.getElementById("f-obs").value.trim();
 
@@ -102,6 +103,11 @@ document.getElementById("form").addEventListener("submit", function(e) {
 document.getElementById("f-salario").addEventListener("blur", function() {
   const v = parseMoeda(this.value);
   if (v > 0) this.value = v.toFixed(2).replace(".", ",");
+});
+
+document.getElementById("f-cargo").addEventListener("input", function() {
+  const wrap = document.getElementById("wrap-salario");
+  wrap.style.display = this.value.trim().toUpperCase() === "PINTOR" ? "none" : "";
 });
 
 document.getElementById("f-admissao").value = hoje();
