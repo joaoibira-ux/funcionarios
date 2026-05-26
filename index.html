@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Funcionários" />
+  <title>Cadastro de Funcionários</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="stylesheet" href="./style.css?v=1" />
+</head>
+<body>
+
+<header>
+  <span></span>
+  <span>Funcionários</span>
+  <span id="versao-app" class="header-versao"></span>
+</header>
+
+<div id="lista" class="lista"></div>
+
+<button class="fab" id="fab" onclick="toggleForm()">+</button>
+
+<form class="form-card" id="form" novalidate style="display:none">
+  <h3>Novo Funcionário</h3>
+  <div class="form-grid">
+    <div class="full">
+      <label for="f-nome">Nome completo</label>
+      <input type="text" id="f-nome" placeholder="Nome do funcionário" />
+    </div>
+    <div>
+      <label for="f-cargo">Cargo</label>
+      <input type="text" id="f-cargo" placeholder="Ex: Jardineiro" />
+    </div>
+    <div>
+      <label for="f-admissao">Admissão</label>
+      <input type="text" id="f-admissao" placeholder="DD/MM/AAAA" />
+    </div>
+    <div>
+      <label for="f-salario">Salário (R$)</label>
+      <input type="decimal" inputmode="decimal" id="f-salario" placeholder="0,00" />
+    </div>
+    <div>
+      <label for="f-telefone">Telefone</label>
+      <input type="text" id="f-telefone" placeholder="(00) 00000-0000" />
+    </div>
+    <div class="full">
+      <label for="f-obs">Observações</label>
+      <input type="text" id="f-obs" placeholder="Opcional" />
+    </div>
+    <button type="submit" class="btn-add">+ Cadastrar</button>
+  </div>
+</form>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="./app.js?v=1"></script>
+</body>
+</html>
