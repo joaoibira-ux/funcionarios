@@ -98,10 +98,15 @@ header {
   font-style: italic;
 }
 
-.btn-del {
+.card-acoes {
   position: absolute;
   top: 10px;
   right: 10px;
+  display: flex;
+  gap: 4px;
+}
+
+.btn-edit, .btn-del {
   background: none;
   border: none;
   font-size: 1rem;
@@ -110,7 +115,8 @@ header {
   padding: 4px;
   line-height: 1;
 }
-.btn-del:active { color: #f44336; }
+.btn-edit:active { color: #1a3322; }
+.btn-del:active  { color: #f44336; }
 
 .fab {
   position: fixed;

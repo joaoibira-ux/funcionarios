@@ -9,7 +9,7 @@
   <title>Cadastro de Funcionários</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./style.css?v=2" />
+  <link rel="stylesheet" href="./style.css?v=3" />
 </head>
 <body>
 
@@ -24,7 +24,7 @@
 <button class="fab" id="fab" onclick="toggleForm()">+</button>
 
 <form class="form-card" id="form" novalidate style="display:none">
-  <h3>Novo Funcionário</h3>
+  <h3 id="form-titulo">Novo Funcionário</h3>
   <div class="form-grid">
     <div class="full">
       <label for="f-nome">Nome completo</label>
@@ -50,12 +50,12 @@
       <label for="f-obs">Observações</label>
       <input type="text" id="f-obs" placeholder="Opcional" />
     </div>
-    <button type="submit" class="btn-add">+ Cadastrar</button>
+    <button type="submit" class="btn-add" id="btn-submit">+ Cadastrar</button>
   </div>
 </form>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="./app.js?v=2"></script>
+<script src="./app.js?v=3"></script>
 </body>
 </html>
