@@ -7,7 +7,7 @@ const firebaseConfig = {
   appId: "1:472820177992:web:2e1b98c9f6ac3a823d0c7d"
 };
 
-const VERSAO = "1.2";
+const VERSAO = "1.3";
 const CARGOS_POR_PRODUCAO = ["PINTOR", "RASPADOR"];
 
 document.getElementById("versao-app").textContent = "v" + VERSAO;
@@ -60,16 +60,20 @@ function render(docs) {
     const f = doc.data();
     funcionariosCache[doc.id] = f;
     const porProd = ehPorProducao(f.cargo);
+    const ativo   = f.ativo !== false;
     return `
-      <div class="card">
+      <div class="card ${ativo ? '' : 'inativo'}">
         <div class="card-acoes">
           <button class="btn-edit" onclick="editarFuncionario('${doc.id}')" title="Editar">✏</button>
-          <button class="btn-del" onclick="excluir('${doc.id}')" title="Excluir">✕</button>
+          <button class="btn-del"  onclick="excluir('${doc.id}')"           title="Excluir">✕</button>
         </div>
         <div class="card-nome">${escHtml(f.nome)}</div>
         <div class="card-info">
           <span class="badge">${escHtml(f.cargo)}</span>
           <span class="card-salario ${porProd ? 'por-producao' : ''}">${porProd ? 'Por produção' : fmtMoeda(f.salario)}</span>
+          <button class="btn-ativo ${ativo ? 'ativo' : 'inativo'}" onclick="toggleAtivo('${doc.id}')">
+            ${ativo ? '● Ativo' : '○ Inativo'}
+          </button>
         </div>
         <div class="card-meta">
           <span>Admissão: ${escHtml(f.admissao)}</span>
@@ -148,6 +152,12 @@ function editarFuncionario(id) {
   form.style.display = "block";
   fab.classList.add("open");
   document.getElementById("f-nome").focus();
+}
+
+function toggleAtivo(id) {
+  const f = funcionariosCache[id];
+  if (!f) return;
+  col.doc(id).update({ ativo: f.ativo === false });
 }
 
 function excluir(id) {
