@@ -7,8 +7,17 @@ const firebaseConfig = {
   appId: "1:472820177992:web:2e1b98c9f6ac3a823d0c7d"
 };
 
-const VERSAO = "1.3";
+const VERSAO = "1.4";
 const CARGOS_POR_PRODUCAO = ["PINTOR", "RASPADOR"];
+
+function ehServente(cargo) {
+  return (cargo || "").toLowerCase().includes("servente");
+}
+
+function atualizarLabelSalario(cargo) {
+  const label = document.querySelector('label[for="f-salario"]');
+  if (label) label.textContent = ehServente(cargo) ? "Diária (R$)" : "Salário (R$)";
+}
 
 document.getElementById("versao-app").textContent = "v" + VERSAO;
 
@@ -70,7 +79,7 @@ function render(docs) {
         <div class="card-nome">${escHtml(f.nome)}</div>
         <div class="card-info">
           <span class="badge">${escHtml(f.cargo)}</span>
-          <span class="card-salario ${porProd ? 'por-producao' : ''}">${porProd ? 'Por produção' : fmtMoeda(f.salario)}</span>
+          <span class="card-salario ${porProd ? 'por-producao' : ''}">${porProd ? 'Por produção' : ehServente(f.cargo) ? 'Diária: ' + fmtMoeda(f.salario) : fmtMoeda(f.salario)}</span>
           <button class="btn-ativo ${ativo ? 'ativo' : 'inativo'}" onclick="toggleAtivo('${doc.id}')">
             ${ativo ? '● Ativo' : '○ Inativo'}
           </button>
@@ -128,6 +137,7 @@ document.getElementById("f-salario").addEventListener("blur", function() {
 document.getElementById("f-cargo").addEventListener("input", function() {
   const wrap = document.getElementById("wrap-salario");
   wrap.style.display = ehPorProducao(this.value.trim()) ? "none" : "";
+  atualizarLabelSalario(this.value.trim());
 });
 
 document.getElementById("f-admissao").value = hoje();
@@ -145,6 +155,7 @@ function editarFuncionario(id) {
   document.getElementById("f-obs").value      = f.obs      || "";
   const porProd = ehPorProducao(f.cargo);
   document.getElementById("wrap-salario").style.display = porProd ? "none" : "";
+  atualizarLabelSalario(f.cargo);
   document.getElementById("f-salario").value = (!porProd && f.salario > 0)
     ? f.salario.toFixed(2).replace(".", ",") : "";
   const form = document.getElementById("form");
