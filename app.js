@@ -7,11 +7,11 @@ const firebaseConfig = {
   appId: "1:472820177992:web:2e1b98c9f6ac3a823d0c7d"
 };
 
-const VERSAO = "1.4";
+const VERSAO = "1.5";
 const CARGOS_POR_PRODUCAO = ["PINTOR", "RASPADOR"];
 
 function ehServente(cargo) {
-  return (cargo || "").toLowerCase().includes("servente");
+  return (cargo || "").toLowerCase().includes("ajudante");
 }
 
 function atualizarLabelSalario(cargo) {
