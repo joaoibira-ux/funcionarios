@@ -7,7 +7,7 @@ const firebaseConfig = {
   appId: "1:472820177992:web:2e1b98c9f6ac3a823d0c7d"
 };
 
-const VERSAO = "2.3";
+const VERSAO = "2.4";
 const CARGOS_POR_PRODUCAO = ["PINTOR", "RASPADOR"];
 
 document.getElementById("versao-app").textContent = "v" + VERSAO;
@@ -494,4 +494,5 @@ function gerarPDF() {
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" });
+  navigator.serviceWorker.addEventListener("controllerchange", () => window.location.reload());
 }
