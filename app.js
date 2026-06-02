@@ -7,7 +7,7 @@ const firebaseConfig = {
   appId: "1:472820177992:web:2e1b98c9f6ac3a823d0c7d"
 };
 
-const VERSAO = "2.0";
+const VERSAO = "2.1";
 const CARGOS_POR_PRODUCAO = ["PINTOR", "RASPADOR"];
 
 document.getElementById("versao-app").textContent = "v" + VERSAO;
@@ -53,8 +53,8 @@ function render(docs) {
     return `
       <div class="card ${ativo ? '' : 'inativo'}">
         <div class="card-acoes">
-          <button class="btn-edit" onclick="editarFuncionario('${doc.id}')" title="Editar">✏</button>
-          <button class="btn-del"  onclick="excluir('${doc.id}')"           title="Excluir">✕</button>
+          <button class="btn-consultar" onclick="consultarFuncionario('${doc.id}')">Consultar</button>
+          <button class="btn-del" onclick="excluir('${doc.id}')" title="Excluir">✕</button>
         </div>
         <div class="card-nome">${escHtml(f.nome)}</div>
         <div class="card-info">
@@ -200,6 +200,10 @@ function editarFuncionario(id) {
 function toggleAtivo(id) {
   const f = funcionariosCache[id];
   if (!f) return;
+  const acao = f.ativo === false ? 'ATIVAR' : 'DESATIVAR';
+  const senha = prompt(`${acao} funcionário?\n${f.nome}\n\nDigite a senha:`);
+  if (senha === null) return;
+  if (senha !== '4512') { alert('Senha incorreta.'); return; }
   col.doc(id).update({ ativo: f.ativo === false });
 }
 
@@ -212,19 +216,70 @@ function excluir(id) {
   col.doc(id).delete();
 }
 
+// ── Consultar ──────────────────────────────────────────────
+let consultandoId = null;
+
+function consultarFuncionario(id) {
+  const f = funcionariosCache[id];
+  if (!f) return;
+  consultandoId = id;
+  const c = (label, val) => val ? `<div class="cons-campo"><span class="cons-label">${escHtml(label)}</span><span class="cons-valor">${escHtml(val)}</span></div>` : '';
+  const sec = title => `<div class="form-section-title">${title}</div><div class="cons-grid">`;
+  const instrucao = [f.instrucao, f.instrucaoStatus].filter(Boolean).join(' — ');
+  document.getElementById('consultar-body').innerHTML = `
+    ${sec('Identificação')}
+      ${c('Nome', f.nome)}${c('Cargo', f.cargo)}${c('Admissão', f.admissao)}
+      ${c(ehServente(f.cargo) ? 'Diária' : 'Salário', f.salario > 0 ? fmtMoeda(f.salario) : 'Por produção')}
+      ${c('Telefone', f.telefone)}${c('Observações', f.obs)}
+    </div>
+    ${sec('Dados Pessoais')}
+      ${c('Nacionalidade', f.nacionalidade)}${c('Estado Civil', f.estadocivil)}
+      ${c('Nascimento', f.nascimento)}${c('Cônjuge', f.conjuge)}
+      ${c('Local de Nascimento', f.localnasc)}${c('UF Nasc.', f.ufnasc)}
+      ${c('Nome da Mãe', f.nomemae)}${c('Grau de Instrução', instrucao)}
+    </div>
+    ${sec('Documentos')}
+      ${c('CPF', f.cpf)}${c('Identidade (RG)', f.rg)}
+      ${c('Órgão Emissor', f.orgaoemissor)}${c('UF Identidade', f.ufrg)}
+      ${c('Data Emissão RG', f.emissaorg)}${c('CTPS', f.ctps)}
+      ${c('Série CTPS', f.seriectps)}${c('UF CTPS', f.ufctps)}
+      ${c('Data Emissão CTPS', f.emissaoctps)}
+    </div>
+    ${sec('Endereço')}
+      ${c('Endereço', f.endereco)}${c('CEP', f.cep)}
+      ${c('Cidade', f.cidade)}${c('UF', f.uf)}
+    </div>`;
+  document.getElementById('consultar-overlay').style.display = 'flex';
+}
+
+function fecharConsultar() {
+  document.getElementById('consultar-overlay').style.display = 'none';
+  consultandoId = null;
+}
+
+function editarDoConsultar() {
+  fecharConsultar();
+  editarFuncionario(consultandoId);
+}
+
+function irParaAssinaturaDoConsultar() {
+  document.getElementById('consultar-overlay').style.display = 'none';
+  document.getElementById('assin-overlay').style.display = 'flex';
+  if (!_canvasInited) { initCanvas(); _canvasInited = true; }
+  limparAssinatura();
+}
+
+function voltarDaAssinatura() {
+  document.getElementById('assin-overlay').style.display = 'none';
+  if (consultandoId) {
+    document.getElementById('consultar-overlay').style.display = 'flex';
+  } else {
+    document.getElementById('form-overlay').style.display = 'flex';
+  }
+}
+
 // ── Assinatura ────────────────────────────────────────────
 let _canvasInited = false;
-
-function irParaAssinatura() {
-  document.getElementById("form-overlay").style.display = "none";
-  document.getElementById("assin-overlay").style.display = "flex";
-  if (!_canvasInited) { initCanvas(); _canvasInited = true; }
-}
-
-function voltarParaForm() {
-  document.getElementById("assin-overlay").style.display = "none";
-  document.getElementById("form-overlay").style.display = "flex";
-}
 
 function initCanvas() {
   const canvas = document.getElementById("assin-canvas");
@@ -267,12 +322,23 @@ function limparAssinatura() {
   canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
 }
 
+function canvasVazio() {
+  const canvas = document.getElementById('assin-canvas');
+  return !canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data.some(v=>v!==0);
+}
+
+function assinarEGerarPDF() {
+  if (canvasVazio()) { alert('Por favor, assine antes de gerar o PDF.'); return; }
+  gerarPDF();
+}
+
 // ── PDF ───────────────────────────────────────────────────
 function gerarPDF() {
   if (typeof window.jspdf === "undefined") { alert("Biblioteca PDF não carregada. Verifique sua conexão."); return; }
   const { jsPDF } = window.jspdf;
-  const doc  = new jsPDF({ unit: "mm", format: "a4" });
-  const dados = lerCampos();
+  const doc   = new jsPDF({ unit: "mm", format: "a4" });
+  const dados = consultandoId ? funcionariosCache[consultandoId] : lerCampos();
+  if (!dados) return;
   const W    = 210;
   const mg   = 14;
   let y      = mg;

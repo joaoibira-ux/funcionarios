@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="Funcionários" />
   <title>Cadastro de Funcionários</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./style.css?v=7" />
+  <link rel="stylesheet" href="./style.css?v=8" />
 </head>
 <body>
 
@@ -200,18 +200,29 @@
 
       <div class="form-actions">
         <button type="button" class="btn-cancel" onclick="fecharFormulario()">Cancelar</button>
-        <button type="button" class="btn-next" onclick="irParaAssinatura()">Assinatura →</button>
         <button type="submit" class="btn-save" id="btn-submit">💾 Salvar</button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- PÁGINA 2: Assinatura -->
+<!-- TELA DE CONSULTA -->
+<div id="consultar-overlay" class="form-overlay" style="display:none">
+  <div class="form-scroll">
+    <div id="consultar-body"></div>
+    <div class="form-actions">
+      <button type="button" class="btn-cancel" onclick="fecharConsultar()">Fechar</button>
+      <button type="button" class="btn-next"   onclick="editarDoConsultar()">✏ Editar</button>
+      <button type="button" class="btn-pdf"    onclick="irParaAssinaturaDoConsultar()">📄 Gerar PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ASSINATURA (acesso via Gerar PDF na consulta) -->
 <div id="assin-overlay" class="form-overlay" style="display:none">
   <div class="form-scroll">
     <div class="form-section-title">Assinatura do Funcionário</div>
-    <p class="assin-instrucao">Assine com o dedo ou caneta no espaço abaixo</p>
+    <p class="assin-instrucao">Assine com o dedo ou caneta — obrigatório para gerar o PDF</p>
     <div class="canvas-wrap">
       <canvas id="assin-canvas"></canvas>
     </div>
@@ -219,8 +230,8 @@
       <button type="button" class="btn-limpar" onclick="limparAssinatura()">🗑 Limpar</button>
     </div>
     <div class="form-actions">
-      <button type="button" class="btn-cancel" onclick="voltarParaForm()">← Voltar</button>
-      <button type="button" class="btn-pdf" onclick="gerarPDF()">📄 Gerar PDF</button>
+      <button type="button" class="btn-cancel" onclick="voltarDaAssinatura()">← Voltar</button>
+      <button type="button" class="btn-save"   onclick="assinarEGerarPDF()">✅ Assinar e Gerar PDF</button>
     </div>
   </div>
 </div>
@@ -228,6 +239,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="./app.js?v=7"></script>
+<script src="./app.js?v=8"></script>
 </body>
 </html>

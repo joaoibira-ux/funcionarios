@@ -106,6 +106,18 @@ header {
   gap: 4px;
 }
 
+.btn-consultar {
+  background: #e8f5e9;
+  color: #1a3322;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-consultar:active { background: #c8e6c9; }
+
 .btn-edit, .btn-del {
   background: none;
   border: none;
@@ -117,6 +129,33 @@ header {
 }
 .btn-edit:active { color: #1a3322; }
 .btn-del:active  { color: #f44336; }
+
+/* Consulta read-only */
+.cons-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  margin-bottom: 4px;
+}
+.cons-campo {
+  padding: 6px 0 4px;
+  border-bottom: 1px solid #eee;
+}
+.cons-campo:last-child { border-bottom: none; }
+.cons-label {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #aaa;
+  margin-bottom: 2px;
+}
+.cons-valor {
+  font-size: 0.9rem;
+  color: #1a3322;
+  font-weight: 500;
+}
 
 .fab {
   position: fixed;
