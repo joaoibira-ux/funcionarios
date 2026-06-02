@@ -7,7 +7,7 @@ const firebaseConfig = {
   appId: "1:472820177992:web:2e1b98c9f6ac3a823d0c7d"
 };
 
-const VERSAO = "2.2";
+const VERSAO = "2.3";
 const CARGOS_POR_PRODUCAO = ["PINTOR", "RASPADOR"];
 
 document.getElementById("versao-app").textContent = "v" + VERSAO;
@@ -255,6 +255,17 @@ function irParaAssinaturaParaSalvar() {
   const nome  = (document.getElementById('f-nome')||{}).value || '';
   const cargo = (document.getElementById('f-cargo')||{}).value || '';
   if (!nome.trim() || !cargo) { alert('Nome e Cargo são obrigatórios.'); return; }
+
+  // Se editando e já tem assinatura salva, salva direto sem pedir nova assinatura
+  if (editandoId && funcionariosCache[editandoId] && funcionariosCache[editandoId].assinatura) {
+    const dados = lerCampos();
+    col.doc(editandoId).update(dados);
+    editandoId = null;
+    fecharFormulario();
+    alert('Dados atualizados com sucesso!');
+    return;
+  }
+
   assinaturaOrigem = 'salvar';
   document.getElementById('btn-assin-acao').textContent = '✅ Assinar e Salvar';
   document.getElementById('form-overlay').style.display = 'none';
@@ -265,11 +276,20 @@ function irParaAssinaturaParaSalvar() {
 
 function irParaAssinaturaDoConsultar() {
   assinaturaOrigem = 'pdf';
-  document.getElementById('btn-assin-acao').textContent = '✅ Assinar e Gerar PDF';
+  document.getElementById('btn-assin-acao').textContent = '✅ Assinar e Gerar Ficha';
   document.getElementById('consultar-overlay').style.display = 'none';
   document.getElementById('assin-overlay').style.display = 'flex';
   if (!_canvasInited) { initCanvas(); _canvasInited = true; }
   limparAssinatura();
+  // Pré-carrega assinatura existente se disponível
+  const f = consultandoId ? funcionariosCache[consultandoId] : null;
+  if (f && f.assinatura) {
+    const canvas = document.getElementById('assin-canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    img.src = f.assinatura;
+  }
 }
 
 function acaoAssinatura() {
@@ -279,14 +299,15 @@ function acaoAssinatura() {
 
 function assinarESalvar() {
   if (canvasVazio()) { alert('Por favor, assine antes de salvar.'); return; }
-  // Salva via submit handler do form
   const dados = lerCampos();
   if (!dados.nome || !dados.cargo) { alert('Nome e Cargo são obrigatórios.'); return; }
+  const canvas = document.getElementById('assin-canvas');
+  const assinatura = canvas.toDataURL('image/png');
   if (editandoId) {
-    col.doc(editandoId).update(dados);
+    col.doc(editandoId).update({ ...dados, assinatura });
     editandoId = null;
   } else {
-    col.add({ ...dados, ativo: true, criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+    col.add({ ...dados, assinatura, ativo: true, criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
   }
   document.getElementById('assin-overlay').style.display = 'none';
   document.getElementById('fab').classList.remove('open');
