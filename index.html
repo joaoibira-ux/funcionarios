@@ -200,7 +200,7 @@
 
       <div class="form-actions">
         <button type="button" class="btn-cancel" onclick="fecharFormulario()">Cancelar</button>
-        <button type="submit" class="btn-save" id="btn-submit">💾 Salvar</button>
+        <button type="button" class="btn-save" onclick="irParaAssinaturaParaSalvar()">✍ Assinar e Salvar</button>
       </div>
     </form>
   </div>
@@ -231,7 +231,7 @@
     </div>
     <div class="form-actions">
       <button type="button" class="btn-cancel" onclick="voltarDaAssinatura()">← Voltar</button>
-      <button type="button" class="btn-save"   onclick="assinarEGerarPDF()">✅ Assinar e Gerar PDF</button>
+      <button type="button" class="btn-save" id="btn-assin-acao" onclick="acaoAssinatura()">✅ Assinar e Salvar</button>
     </div>
   </div>
 </div>
@@ -239,6 +239,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="./app.js?v=8"></script>
+<script src="./app.js?v=9"></script>
 </body>
 </html>

@@ -7,7 +7,7 @@ const firebaseConfig = {
   appId: "1:472820177992:web:2e1b98c9f6ac3a823d0c7d"
 };
 
-const VERSAO = "2.1";
+const VERSAO = "2.2";
 const CARGOS_POR_PRODUCAO = ["PINTOR", "RASPADOR"];
 
 document.getElementById("versao-app").textContent = "v" + VERSAO;
@@ -151,19 +151,8 @@ function lerCampos() {
   };
 }
 
-document.getElementById("form").addEventListener("submit", function(e) {
-  e.preventDefault();
-  const dados = lerCampos();
-  if (!dados.nome || !dados.cargo) { alert("Nome e Cargo são obrigatórios."); return; }
-
-  if (editandoId) {
-    col.doc(editandoId).update(dados);
-    editandoId = null;
-  } else {
-    col.add({ ...dados, ativo: true, criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
-  }
-  fecharFormulario();
-});
+// Form submit desativado — salvo via assinarESalvar()
+document.getElementById("form").addEventListener("submit", e => e.preventDefault());
 
 function editarFuncionario(id) {
   const f = funcionariosCache[id];
@@ -262,11 +251,47 @@ function editarDoConsultar() {
   editarFuncionario(consultandoId);
 }
 
+function irParaAssinaturaParaSalvar() {
+  const nome  = (document.getElementById('f-nome')||{}).value || '';
+  const cargo = (document.getElementById('f-cargo')||{}).value || '';
+  if (!nome.trim() || !cargo) { alert('Nome e Cargo são obrigatórios.'); return; }
+  assinaturaOrigem = 'salvar';
+  document.getElementById('btn-assin-acao').textContent = '✅ Assinar e Salvar';
+  document.getElementById('form-overlay').style.display = 'none';
+  document.getElementById('assin-overlay').style.display = 'flex';
+  if (!_canvasInited) { initCanvas(); _canvasInited = true; }
+  limparAssinatura();
+}
+
 function irParaAssinaturaDoConsultar() {
+  assinaturaOrigem = 'pdf';
+  document.getElementById('btn-assin-acao').textContent = '✅ Assinar e Gerar PDF';
   document.getElementById('consultar-overlay').style.display = 'none';
   document.getElementById('assin-overlay').style.display = 'flex';
   if (!_canvasInited) { initCanvas(); _canvasInited = true; }
   limparAssinatura();
+}
+
+function acaoAssinatura() {
+  if (assinaturaOrigem === 'salvar') assinarESalvar();
+  else assinarEGerarPDF();
+}
+
+function assinarESalvar() {
+  if (canvasVazio()) { alert('Por favor, assine antes de salvar.'); return; }
+  // Salva via submit handler do form
+  const dados = lerCampos();
+  if (!dados.nome || !dados.cargo) { alert('Nome e Cargo são obrigatórios.'); return; }
+  if (editandoId) {
+    col.doc(editandoId).update(dados);
+    editandoId = null;
+  } else {
+    col.add({ ...dados, ativo: true, criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+  }
+  document.getElementById('assin-overlay').style.display = 'none';
+  document.getElementById('fab').classList.remove('open');
+  consultandoId = null;
+  alert('Funcionário salvo com sucesso!');
 }
 
 function voltarDaAssinatura() {
@@ -279,7 +304,8 @@ function voltarDaAssinatura() {
 }
 
 // ── Assinatura ────────────────────────────────────────────
-let _canvasInited = false;
+let _canvasInited  = false;
+let assinaturaOrigem = 'salvar'; // 'salvar' | 'pdf'
 
 function initCanvas() {
   const canvas = document.getElementById("assin-canvas");
