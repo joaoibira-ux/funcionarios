@@ -7,7 +7,7 @@ const firebaseConfig = {
   appId: "1:472820177992:web:2e1b98c9f6ac3a823d0c7d"
 };
 
-const VERSAO = "2.4";
+const VERSAO = "2.5";
 const CARGOS_POR_PRODUCAO = ["PINTOR", "RASPADOR"];
 
 document.getElementById("versao-app").textContent = "v" + VERSAO;
@@ -85,8 +85,8 @@ function abrirFormulario() {
   editandoId = null;
   document.getElementById("form").reset();
   document.getElementById("f-admissao").value = hoje();
-  document.getElementById("btn-submit").textContent = "💾 Salvar";
   document.getElementById("wrap-salario").style.display = "";
+  document.getElementById("lbl-salario").textContent = "Salário (R$)";
   document.getElementById("form-overlay").style.display = "flex";
   document.getElementById("fab").classList.add("open");
   document.getElementById("f-nome").focus();
@@ -180,8 +180,6 @@ function editarFuncionario(id) {
   const porProd = ehPorProducao(f.cargo);
   document.getElementById("wrap-salario").style.display = porProd ? "none" : "";
   document.getElementById("lbl-salario").textContent = ehServente(f.cargo) ? "Diária (R$)" : "Salário (R$)";
-  document.getElementById("btn-submit").textContent = "✓ Salvar alterações";
-
   document.getElementById("form-overlay").style.display = "flex";
   document.getElementById("fab").classList.add("open");
 }
@@ -247,8 +245,9 @@ function fecharConsultar() {
 }
 
 function editarDoConsultar() {
+  const id = consultandoId; // salva antes de fecharConsultar() zerá-lo
   fecharConsultar();
-  editarFuncionario(consultandoId);
+  editarFuncionario(id);
 }
 
 function irParaAssinaturaParaSalvar() {
