@@ -7,7 +7,7 @@ const firebaseConfig = {
   appId: "1:472820177992:web:2e1b98c9f6ac3a823d0c7d"
 };
 
-const VERSAO = "2.5";
+const VERSAO = "2.6";
 const CARGOS_POR_PRODUCAO = ["PINTOR", "RASPADOR"];
 
 document.getElementById("versao-app").textContent = "v" + VERSAO;
@@ -99,18 +99,116 @@ function fecharFormulario() {
   editandoId = null;
 }
 
-// Cargo: atualiza label salário
+// Cargo
 document.getElementById("f-cargo").addEventListener("change", function() {
-  const wrap = document.getElementById("wrap-salario");
-  const lbl  = document.getElementById("lbl-salario");
-  wrap.style.display = ehPorProducao(this.value) ? "none" : "";
-  lbl.textContent = ehServente(this.value) ? "Diária (R$)" : "Salário (R$)";
+  document.getElementById("wrap-salario").style.display = ehPorProducao(this.value) ? "none" : "";
+  document.getElementById("lbl-salario").textContent = ehServente(this.value) ? "Diária (R$)" : "Salário (R$)";
 });
 
 document.getElementById("f-salario").addEventListener("blur", function() {
   const v = parseMoeda(this.value);
   if (v > 0) this.value = v.toFixed(2).replace(".",",");
 });
+
+// ── Auto-formato datas ─────────────────────────────────────
+const IDS_DATA = ["f-admissao","f-nascimento","f-emissaorg","f-emissaoctps"];
+function formatarData(val) {
+  const n = val.replace(/\D/g,"");
+  if (n.length >= 8) return n.slice(0,2)+"/"+n.slice(2,4)+"/"+n.slice(4,8);
+  if (n.length >= 4) return n.slice(0,2)+"/"+n.slice(2,4)+"/"+(n.slice(4)||"");
+  if (n.length >= 2) return n.slice(0,2)+"/"+(n.slice(2)||"");
+  return n;
+}
+function validarData(val) {
+  if (!val) return false;
+  const m = val.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return false;
+  const d=+m[1],mo=+m[2],y=+m[3];
+  return mo>=1&&mo<=12&&d>=1&&d<=31&&y>=1900&&y<=2100;
+}
+IDS_DATA.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener("input", function() { this.value = formatarData(this.value); });
+  el.addEventListener("blur",  function() { if(this.value&&!validarData(this.value)) this.classList.add("campo-erro"); else this.classList.remove("campo-erro"); });
+});
+
+// ── CPF ────────────────────────────────────────────────────
+function validarCPF(cpf) {
+  cpf = cpf.replace(/\D/g,"");
+  if (cpf.length!==11||/^(\d)\1{10}$/.test(cpf)) return false;
+  let s=0; for(let i=0;i<9;i++) s+=+cpf[i]*(10-i);
+  let r=11-s%11; if(r>9)r=0; if(r!==+cpf[9]) return false;
+  s=0; for(let i=0;i<10;i++) s+=+cpf[i]*(11-i);
+  r=11-s%11; if(r>9)r=0; return r===+cpf[10];
+}
+const elCpf = document.getElementById("f-cpf");
+if (elCpf) {
+  elCpf.addEventListener("input", function() {
+    const n=this.value.replace(/\D/g,"").slice(0,11);
+    this.value=n.replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})\.(\d{3})(\d)/,"$1.$2.$3").replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/,"$1.$2.$3-$4");
+  });
+  elCpf.addEventListener("blur", function() {
+    this.classList.toggle("campo-erro", !validarCPF(this.value));
+  });
+}
+
+// ── CEP auto-fill ──────────────────────────────────────────
+const elCep = document.getElementById("f-cep");
+if (elCep) {
+  elCep.addEventListener("input", function() {
+    const n=this.value.replace(/\D/g,"").slice(0,8);
+    this.value=n.length>5?n.slice(0,5)+"-"+n.slice(5):n;
+  });
+  elCep.addEventListener("blur", async function() {
+    const cep=this.value.replace(/\D/g,"");
+    if(cep.length!==8) return;
+    try {
+      const res=await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const d=await res.json();
+      if(!d.erro){
+        if(d.logradouro && !document.getElementById("f-endereco").value)
+          document.getElementById("f-endereco").value=d.logradouro+(d.complemento?" "+d.complemento:"");
+        document.getElementById("f-cidade").value=d.localidade||"";
+        document.getElementById("f-uf").value=d.uf||"";
+      }
+    } catch(e){}
+  });
+}
+
+// ── Validação completa ─────────────────────────────────────
+function validarFormulario() {
+  const v  = id => ((document.getElementById(id)||{}).value||"").trim();
+  const rb = n  => !!document.querySelector(`input[name="${n}"]:checked`);
+  const erros = [];
+  if (!v("f-nome"))           erros.push("Nome");
+  if (!v("f-cargo"))          erros.push("Cargo");
+  if (!validarData(v("f-admissao"))) erros.push("Admissão (DD/MM/AAAA)");
+  if (!ehPorProducao(v("f-cargo")) && !parseMoeda(v("f-salario"))) erros.push("Salário / Diária");
+  if (!v("f-telefone"))       erros.push("Telefone");
+  if (!v("f-nacionalidade"))  erros.push("Nacionalidade");
+  if (!v("f-estadocivil"))    erros.push("Estado Civil");
+  if (!validarData(v("f-nascimento"))) erros.push("Data de Nascimento (DD/MM/AAAA)");
+  if (!v("f-localnasc"))      erros.push("Local de Nascimento");
+  if (!v("f-ufnasc"))         erros.push("UF Nascimento");
+  if (!v("f-nomemae"))        erros.push("Nome da Mãe");
+  if (!rb("instrucao"))       erros.push("Grau de Instrução");
+  if (!rb("instrucao_status"))erros.push("Grau de Instrução (Completo/Incompleto/Cursando)");
+  if (!validarCPF(v("f-cpf"))) erros.push("CPF inválido");
+  if (!v("f-rg"))             erros.push("Identidade (RG)");
+  if (!v("f-orgaoemissor"))   erros.push("Órgão Emissor");
+  if (!v("f-ufrg"))           erros.push("UF Identidade");
+  if (!validarData(v("f-emissaorg"))) erros.push("Data Emissão RG (DD/MM/AAAA)");
+  if (!v("f-ctps"))           erros.push("CTPS");
+  if (!v("f-seriectps"))      erros.push("Série CTPS");
+  if (!v("f-ufctps"))         erros.push("UF CTPS");
+  if (!validarData(v("f-emissaoctps"))) erros.push("Data Emissão CTPS (DD/MM/AAAA)");
+  if (!v("f-cep"))            erros.push("CEP");
+  if (!v("f-endereco"))       erros.push("Endereço");
+  if (!v("f-cidade"))         erros.push("Cidade");
+  if (!v("f-uf"))             erros.push("UF");
+  return erros;
+}
 
 // ── Salvar ────────────────────────────────────────────────
 function lerCampos() {
@@ -251,9 +349,8 @@ function editarDoConsultar() {
 }
 
 function irParaAssinaturaParaSalvar() {
-  const nome  = (document.getElementById('f-nome')||{}).value || '';
-  const cargo = (document.getElementById('f-cargo')||{}).value || '';
-  if (!nome.trim() || !cargo) { alert('Nome e Cargo são obrigatórios.'); return; }
+  const erros = validarFormulario();
+  if (erros.length) { alert('Campos obrigatórios incompletos ou inválidos:\n\n• ' + erros.join('\n• ')); return; }
 
   // Se editando e já tem assinatura salva, salva direto sem pedir nova assinatura
   if (editandoId && funcionariosCache[editandoId] && funcionariosCache[editandoId].assinatura) {
@@ -274,21 +371,20 @@ function irParaAssinaturaParaSalvar() {
 }
 
 function irParaAssinaturaDoConsultar() {
+  const f = consultandoId ? funcionariosCache[consultandoId] : null;
+  // Se já tem assinatura salva, gera o PDF diretamente sem mostrar tela de assinatura
+  if (f && f.assinatura) {
+    document.getElementById('consultar-overlay').style.display = 'none';
+    gerarPDFComAssinatura(f, f.assinatura);
+    document.getElementById('consultar-overlay').style.display = 'flex';
+    return;
+  }
   assinaturaOrigem = 'pdf';
   document.getElementById('btn-assin-acao').textContent = '✅ Assinar e Gerar Ficha';
   document.getElementById('consultar-overlay').style.display = 'none';
   document.getElementById('assin-overlay').style.display = 'flex';
   if (!_canvasInited) { initCanvas(); _canvasInited = true; }
   limparAssinatura();
-  // Pré-carrega assinatura existente se disponível
-  const f = consultandoId ? funcionariosCache[consultandoId] : null;
-  if (f && f.assinatura) {
-    const canvas = document.getElementById('assin-canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.onload = () => ctx.drawImage(img, 0, 0, canvas.offsetWidth, canvas.offsetHeight);
-    img.src = f.assinatura;
-  }
 }
 
 function acaoAssinatura() {
@@ -379,11 +475,21 @@ function assinarEGerarPDF() {
 }
 
 // ── PDF ───────────────────────────────────────────────────
-function gerarPDF() {
+function assinarEGerarPDF() {
+  if (canvasVazio()) { alert('Por favor, assine antes de gerar a ficha.'); return; }
+  const canvas  = document.getElementById('assin-canvas');
+  const assinB64 = canvas.toDataURL('image/png');
+  if (consultandoId) col.doc(consultandoId).update({ assinatura: assinB64 });
+  document.getElementById('assin-overlay').style.display = 'none';
+  const f = consultandoId ? { ...funcionariosCache[consultandoId], assinatura: assinB64 } : { ...lerCampos(), assinatura: assinB64 };
+  gerarPDFComAssinatura(f);
+}
+
+function gerarPDFComAssinatura(dadosArg) {
   if (typeof window.jspdf === "undefined") { alert("Biblioteca PDF não carregada. Verifique sua conexão."); return; }
   const { jsPDF } = window.jspdf;
   const doc   = new jsPDF({ unit: "mm", format: "a4" });
-  const dados = consultandoId ? funcionariosCache[consultandoId] : lerCampos();
+  const dados = dadosArg || (consultandoId ? funcionariosCache[consultandoId] : lerCampos());
   if (!dados) return;
   const W    = 210;
   const mg   = 14;
@@ -468,12 +574,8 @@ function gerarPDF() {
   if (y > 240) { doc.addPage(); y = 20; }
 
   titulo("Assinatura");
-  const canvas = document.getElementById("assin-canvas");
-  const assinImg = canvas.toDataURL("image/png");
-  const canvasVazio = !canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data.some(v=>v!==0);
-
-  if (!canvasVazio) {
-    doc.addImage(assinImg, "PNG", mg, y, 80, 30);
+  if (dados.assinatura) {
+    doc.addImage(dados.assinatura, "PNG", mg, y, 80, 30);
   }
 
   doc.setDrawColor(100);

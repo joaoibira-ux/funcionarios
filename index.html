@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="Funcionários" />
   <title>Cadastro de Funcionários</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./style.css?v=8" />
+  <link rel="stylesheet" href="./style.css?v=9" />
 </head>
 <body>
 
@@ -175,27 +175,26 @@
 
       <div class="form-section-title">Endereço</div>
       <div class="form-row">
+        <div class="form-group">
+          <label>CEP *</label>
+          <input type="text" id="f-cep" placeholder="00000-000" inputmode="numeric" maxlength="9" />
+        </div>
+        <div class="form-group">
+          <label>UF *</label>
+          <input type="text" id="f-uf" placeholder="UF" maxlength="2" class="upper" />
+        </div>
+      </div>
+      <div class="form-row">
         <div class="form-group full">
-          <label>Endereço</label>
+          <label>Endereço *</label>
           <input type="text" id="f-endereco" placeholder="Rua, número, complemento" />
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group">
-          <label>CEP</label>
-          <input type="text" id="f-cep" placeholder="00000-000" inputmode="numeric" />
-        </div>
-        <div class="form-group">
-          <label>Cidade</label>
+        <div class="form-group full">
+          <label>Cidade *</label>
           <input type="text" id="f-cidade" placeholder="Cidade" />
         </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>UF</label>
-          <input type="text" id="f-uf" placeholder="UF" maxlength="2" class="upper" />
-        </div>
-        <div class="form-group"></div>
       </div>
 
       <div class="form-actions">
@@ -239,6 +238,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="./app.js?v=12"></script>
+<script src="./app.js?v=13"></script>
 </body>
 </html>

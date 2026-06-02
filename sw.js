@@ -1,8 +1,8 @@
-const VERSION = "func-v12";
+const VERSION = "func-v13";
 const ASSETS = [
   "./index.html",
-  "./style.css?v=8",
-  "./app.js?v=12",
+  "./style.css?v=9",
+  "./app.js?v=13",
   "./manifest.json"
 ];
 
