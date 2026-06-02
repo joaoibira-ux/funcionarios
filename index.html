@@ -7,9 +7,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Funcionários" />
   <title>Cadastro de Funcionários</title>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./style.css?v=6" />
+  <link rel="stylesheet" href="./style.css?v=7" />
 </head>
 <body>
 
@@ -20,42 +19,215 @@
 </header>
 
 <div id="lista" class="lista"></div>
+<button class="fab" id="fab" onclick="abrirFormulario()">+</button>
 
-<button class="fab" id="fab" onclick="toggleForm()">+</button>
+<!-- PÁGINA 1: Dados do funcionário -->
+<div id="form-overlay" class="form-overlay" style="display:none">
+  <div class="form-scroll">
+    <form id="form" novalidate>
 
-<form class="form-card" id="form" novalidate style="display:none">
-  <h3 id="form-titulo">Novo Funcionário</h3>
-  <div class="form-grid">
-    <div class="full">
-      <label for="f-nome">Nome completo</label>
-      <input type="text" id="f-nome" placeholder="Nome do funcionário" />
-    </div>
-    <div>
-      <label for="f-cargo">Cargo</label>
-      <input type="text" id="f-cargo" placeholder="Ex: Jardineiro" />
-    </div>
-    <div>
-      <label for="f-admissao">Admissão</label>
-      <input type="text" id="f-admissao" placeholder="DD/MM/AAAA" />
-    </div>
-    <div id="wrap-salario">
-      <label for="f-salario">Salário (R$)</label>
-      <input type="decimal" inputmode="decimal" id="f-salario" placeholder="0,00" />
-    </div>
-    <div>
-      <label for="f-telefone">Telefone</label>
-      <input type="text" id="f-telefone" placeholder="(00) 00000-0000" />
-    </div>
-    <div class="full">
-      <label for="f-obs">Observações</label>
-      <input type="text" id="f-obs" placeholder="Opcional" />
-    </div>
-    <button type="submit" class="btn-add" id="btn-submit">+ Cadastrar</button>
+      <div class="form-section-title">Identificação</div>
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Nome completo *</label>
+          <input type="text" id="f-nome" placeholder="Nome do funcionário" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cargo *</label>
+          <select id="f-cargo">
+            <option value="">Selecionar...</option>
+            <option value="Pintor">Pintor</option>
+            <option value="Ajudante">Ajudante</option>
+            <option value="Raspador">Raspador</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Admissão</label>
+          <input type="text" id="f-admissao" placeholder="DD/MM/AAAA" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" id="wrap-salario">
+          <label id="lbl-salario">Salário (R$)</label>
+          <input type="decimal" inputmode="decimal" id="f-salario" placeholder="0,00" />
+        </div>
+        <div class="form-group">
+          <label>Telefone</label>
+          <input type="tel" id="f-telefone" placeholder="(00) 00000-0000" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Observações</label>
+          <input type="text" id="f-obs" placeholder="Opcional" />
+        </div>
+      </div>
+
+      <div class="form-section-title">Dados Pessoais</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nacionalidade</label>
+          <input type="text" id="f-nacionalidade" placeholder="Brasileiro(a)" />
+        </div>
+        <div class="form-group">
+          <label>Estado Civil</label>
+          <select id="f-estadocivil">
+            <option value="">Selecionar...</option>
+            <option>Solteiro(a)</option>
+            <option>Casado(a)</option>
+            <option>Divorciado(a)</option>
+            <option>Viúvo(a)</option>
+            <option>União Estável</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Data de Nascimento</label>
+          <input type="text" id="f-nascimento" placeholder="DD/MM/AAAA" />
+        </div>
+        <div class="form-group">
+          <label>Cônjuge</label>
+          <input type="text" id="f-conjuge" placeholder="Nome" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Local de Nascimento</label>
+          <input type="text" id="f-localnasc" placeholder="Cidade" />
+        </div>
+        <div class="form-group">
+          <label>UF Nascimento</label>
+          <input type="text" id="f-ufnasc" placeholder="UF" maxlength="2" class="upper" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Nome da Mãe</label>
+          <input type="text" id="f-nomemae" placeholder="Nome completo da mãe" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Grau de Instrução</label>
+          <div class="radio-group">
+            <label class="radio-label"><input type="radio" name="instrucao" value="Fundamental" /> Fundamental</label>
+            <label class="radio-label"><input type="radio" name="instrucao" value="Médio" /> Médio</label>
+            <label class="radio-label"><input type="radio" name="instrucao" value="Superior" /> Superior</label>
+          </div>
+          <div class="radio-group mt6">
+            <label class="radio-label"><input type="radio" name="instrucao_status" value="Completo" /> Completo</label>
+            <label class="radio-label"><input type="radio" name="instrucao_status" value="Incompleto" /> Incompleto</label>
+            <label class="radio-label"><input type="radio" name="instrucao_status" value="Cursando" /> Cursando</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section-title">Documentos</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>CPF</label>
+          <input type="text" id="f-cpf" placeholder="000.000.000-00" inputmode="numeric" />
+        </div>
+        <div class="form-group">
+          <label>Identidade (RG)</label>
+          <input type="text" id="f-rg" placeholder="Número" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Órgão Emissor</label>
+          <input type="text" id="f-orgaoemissor" placeholder="SSP" />
+        </div>
+        <div class="form-group">
+          <label>UF Identidade</label>
+          <input type="text" id="f-ufrg" placeholder="UF" maxlength="2" class="upper" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Data Emissão RG</label>
+          <input type="text" id="f-emissaorg" placeholder="DD/MM/AAAA" />
+        </div>
+        <div class="form-group">
+          <label>CTPS</label>
+          <input type="text" id="f-ctps" placeholder="Número" inputmode="numeric" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Série CTPS</label>
+          <input type="text" id="f-seriectps" placeholder="Série" />
+        </div>
+        <div class="form-group">
+          <label>UF CTPS</label>
+          <input type="text" id="f-ufctps" placeholder="UF" maxlength="2" class="upper" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Data Emissão CTPS</label>
+          <input type="text" id="f-emissaoctps" placeholder="DD/MM/AAAA" />
+        </div>
+      </div>
+
+      <div class="form-section-title">Endereço</div>
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Endereço</label>
+          <input type="text" id="f-endereco" placeholder="Rua, número, complemento" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>CEP</label>
+          <input type="text" id="f-cep" placeholder="00000-000" inputmode="numeric" />
+        </div>
+        <div class="form-group">
+          <label>Cidade</label>
+          <input type="text" id="f-cidade" placeholder="Cidade" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>UF</label>
+          <input type="text" id="f-uf" placeholder="UF" maxlength="2" class="upper" />
+        </div>
+        <div class="form-group"></div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" onclick="fecharFormulario()">Cancelar</button>
+        <button type="button" class="btn-next" onclick="irParaAssinatura()">Assinatura →</button>
+        <button type="submit" class="btn-save" id="btn-submit">💾 Salvar</button>
+      </div>
+    </form>
   </div>
-</form>
+</div>
 
+<!-- PÁGINA 2: Assinatura -->
+<div id="assin-overlay" class="form-overlay" style="display:none">
+  <div class="form-scroll">
+    <div class="form-section-title">Assinatura do Funcionário</div>
+    <p class="assin-instrucao">Assine com o dedo ou caneta no espaço abaixo</p>
+    <div class="canvas-wrap">
+      <canvas id="assin-canvas"></canvas>
+    </div>
+    <div style="text-align:center;margin:10px 0">
+      <button type="button" class="btn-limpar" onclick="limparAssinatura()">🗑 Limpar</button>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn-cancel" onclick="voltarParaForm()">← Voltar</button>
+      <button type="button" class="btn-pdf" onclick="gerarPDF()">📄 Gerar PDF</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="./app.js?v=6"></script>
+<script src="./app.js?v=7"></script>
 </body>
 </html>

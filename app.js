@@ -7,17 +7,8 @@ const firebaseConfig = {
   appId: "1:472820177992:web:2e1b98c9f6ac3a823d0c7d"
 };
 
-const VERSAO = "1.5";
+const VERSAO = "2.0";
 const CARGOS_POR_PRODUCAO = ["PINTOR", "RASPADOR"];
-
-function ehServente(cargo) {
-  return (cargo || "").toLowerCase().includes("ajudante");
-}
-
-function atualizarLabelSalario(cargo) {
-  const label = document.querySelector('label[for="f-salario"]');
-  if (label) label.textContent = ehServente(cargo) ? "Diária (R$)" : "Salário (R$)";
-}
 
 document.getElementById("versao-app").textContent = "v" + VERSAO;
 
@@ -26,45 +17,34 @@ const db  = firebase.firestore();
 const col = db.collection("funcionarios");
 
 function escHtml(s) {
-  return String(s || "")
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
 function parseMoeda(s) {
-  const v = parseFloat(String(s).replace(/[^\d,]/g, "").replace(",", "."));
+  const v = parseFloat(String(s).replace(/[^\d,]/g,"").replace(",","."));
   return isNaN(v) ? 0 : v;
 }
 
 function fmtMoeda(v) {
-  return "R$ " + (v || 0).toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return "R$ " + (v||0).toFixed(2).replace(".",",").replace(/\B(?=(\d{3})+(?!\d))/g,".");
 }
 
 function hoje() {
   const d = new Date();
-  return [
-    String(d.getDate()).padStart(2, "0"),
-    String(d.getMonth() + 1).padStart(2, "0"),
-    d.getFullYear()
-  ].join("/");
+  return [String(d.getDate()).padStart(2,"0"), String(d.getMonth()+1).padStart(2,"0"), d.getFullYear()].join("/");
 }
 
-function ehPorProducao(cargo) {
-  return CARGOS_POR_PRODUCAO.includes((cargo || "").toUpperCase());
-}
+function ehServente(cargo) { return (cargo||"").toLowerCase().includes("ajudante"); }
+function ehPorProducao(cargo) { return CARGOS_POR_PRODUCAO.includes((cargo||"").toUpperCase()); }
 
 let funcionariosCache = {};
 let editandoId = null;
 
+// ── Lista ─────────────────────────────────────────────────
 function render(docs) {
   const lista = document.getElementById("lista");
   funcionariosCache = {};
-
-  if (docs.length === 0) {
-    lista.innerHTML = '<p class="empty">Nenhum funcionário cadastrado.</p>';
-    return;
-  }
-
+  if (!docs.length) { lista.innerHTML = '<p class="empty">Nenhum funcionário cadastrado.</p>'; return; }
   lista.innerHTML = docs.map(doc => {
     const f = doc.data();
     funcionariosCache[doc.id] = f;
@@ -79,90 +59,142 @@ function render(docs) {
         <div class="card-nome">${escHtml(f.nome)}</div>
         <div class="card-info">
           <span class="badge">${escHtml(f.cargo)}</span>
-          <span class="card-salario ${porProd ? 'por-producao' : ''}">${porProd ? 'Por produção' : ehServente(f.cargo) ? 'Diária: ' + fmtMoeda(f.salario) : fmtMoeda(f.salario)}</span>
+          <span class="card-salario ${porProd ? 'por-producao' : ''}">
+            ${porProd ? 'Por produção' : ehServente(f.cargo) ? 'Diária: '+fmtMoeda(f.salario) : fmtMoeda(f.salario)}
+          </span>
           <button class="btn-ativo ${ativo ? 'ativo' : 'inativo'}" onclick="toggleAtivo('${doc.id}')">
             ${ativo ? '● Ativo' : '○ Inativo'}
           </button>
         </div>
         <div class="card-meta">
-          <span>Admissão: ${escHtml(f.admissao)}</span>
+          <span>Admissão: ${escHtml(f.admissao||'')}</span>
           ${f.telefone ? `<span>📞 ${escHtml(f.telefone)}</span>` : ""}
+          ${f.cpf ? `<span>CPF: ${escHtml(f.cpf)}</span>` : ""}
         </div>
         ${f.obs ? `<div class="card-obs">${escHtml(f.obs)}</div>` : ""}
       </div>`;
   }).join("");
 }
 
-col.orderBy("criadoEm", "asc").onSnapshot(snap => {
-  render(snap.docs);
-}, err => {
-  console.error(err);
-  document.getElementById("lista").innerHTML =
-    '<p class="empty">Erro ao conectar. Verifique sua internet.</p>';
+col.orderBy("criadoEm","asc").onSnapshot(snap => render(snap.docs), err => {
+  document.getElementById("lista").innerHTML = '<p class="empty">Erro ao conectar.</p>';
 });
 
-document.getElementById("form").addEventListener("submit", function(e) {
-  e.preventDefault();
-  const nome     = document.getElementById("f-nome").value.trim();
-  const cargo    = document.getElementById("f-cargo").value.trim();
-  const admissao = document.getElementById("f-admissao").value.trim();
-  const porProd  = ehPorProducao(cargo);
-  const salario  = porProd ? 0 : parseMoeda(document.getElementById("f-salario").value);
-  const telefone = document.getElementById("f-telefone").value.trim();
-  const obs      = document.getElementById("f-obs").value.trim();
-
-  if (!nome || !cargo || !admissao) {
-    alert("Nome, Cargo e Admissão são obrigatórios.");
-    return;
-  }
-
-  if (editandoId) {
-    col.doc(editandoId).update({ nome, cargo, admissao, salario, telefone, obs });
-    editandoId = null;
-  } else {
-    col.add({ nome, cargo, admissao, salario, telefone, obs,
-      criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
-  }
-
-  this.reset();
+// ── Formulário ─────────────────────────────────────────────
+function abrirFormulario() {
+  editandoId = null;
+  document.getElementById("form").reset();
   document.getElementById("f-admissao").value = hoje();
-  toggleForm();
+  document.getElementById("btn-submit").textContent = "💾 Salvar";
+  document.getElementById("wrap-salario").style.display = "";
+  document.getElementById("form-overlay").style.display = "flex";
+  document.getElementById("fab").classList.add("open");
+  document.getElementById("f-nome").focus();
+}
+
+function fecharFormulario() {
+  document.getElementById("form-overlay").style.display = "none";
+  document.getElementById("assin-overlay").style.display = "none";
+  document.getElementById("fab").classList.remove("open");
+  editandoId = null;
+}
+
+// Cargo: atualiza label salário
+document.getElementById("f-cargo").addEventListener("change", function() {
+  const wrap = document.getElementById("wrap-salario");
+  const lbl  = document.getElementById("lbl-salario");
+  wrap.style.display = ehPorProducao(this.value) ? "none" : "";
+  lbl.textContent = ehServente(this.value) ? "Diária (R$)" : "Salário (R$)";
 });
 
 document.getElementById("f-salario").addEventListener("blur", function() {
   const v = parseMoeda(this.value);
-  if (v > 0) this.value = v.toFixed(2).replace(".", ",");
+  if (v > 0) this.value = v.toFixed(2).replace(".",",");
 });
 
-document.getElementById("f-cargo").addEventListener("input", function() {
-  const wrap = document.getElementById("wrap-salario");
-  wrap.style.display = ehPorProducao(this.value.trim()) ? "none" : "";
-  atualizarLabelSalario(this.value.trim());
-});
+// ── Salvar ────────────────────────────────────────────────
+function lerCampos() {
+  const v = id => (document.getElementById(id)||{}).value || "";
+  const radios = name => { const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : ""; };
+  return {
+    nome:         v("f-nome").trim(),
+    cargo:        v("f-cargo"),
+    admissao:     v("f-admissao").trim(),
+    salario:      ehPorProducao(v("f-cargo")) ? 0 : parseMoeda(v("f-salario")),
+    telefone:     v("f-telefone").trim(),
+    obs:          v("f-obs").trim(),
+    // Pessoais
+    nacionalidade: v("f-nacionalidade").trim(),
+    estadocivil:   v("f-estadocivil"),
+    nascimento:    v("f-nascimento").trim(),
+    conjuge:       v("f-conjuge").trim(),
+    localnasc:     v("f-localnasc").trim(),
+    ufnasc:        v("f-ufnasc").trim().toUpperCase(),
+    nomemae:       v("f-nomemae").trim(),
+    instrucao:     radios("instrucao"),
+    instrucaoStatus: radios("instrucao_status"),
+    // Documentos
+    cpf:           v("f-cpf").trim(),
+    rg:            v("f-rg").trim(),
+    orgaoemissor:  v("f-orgaoemissor").trim(),
+    ufrg:          v("f-ufrg").trim().toUpperCase(),
+    emissaorg:     v("f-emissaorg").trim(),
+    ctps:          v("f-ctps").trim(),
+    seriectps:     v("f-seriectps").trim(),
+    ufctps:        v("f-ufctps").trim().toUpperCase(),
+    emissaoctps:   v("f-emissaoctps").trim(),
+    // Endereço
+    endereco:      v("f-endereco").trim(),
+    cep:           v("f-cep").trim(),
+    cidade:        v("f-cidade").trim(),
+    uf:            v("f-uf").trim().toUpperCase(),
+  };
+}
 
-document.getElementById("f-admissao").value = hoje();
+document.getElementById("form").addEventListener("submit", function(e) {
+  e.preventDefault();
+  const dados = lerCampos();
+  if (!dados.nome || !dados.cargo) { alert("Nome e Cargo são obrigatórios."); return; }
+
+  if (editandoId) {
+    col.doc(editandoId).update(dados);
+    editandoId = null;
+  } else {
+    col.add({ ...dados, ativo: true, criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+  }
+  fecharFormulario();
+});
 
 function editarFuncionario(id) {
   const f = funcionariosCache[id];
   if (!f) return;
   editandoId = id;
-  document.getElementById("form-titulo").textContent = "Editar Funcionário";
-  document.getElementById("btn-submit").textContent = "✓ Salvar alterações";
-  document.getElementById("f-nome").value     = f.nome     || "";
-  document.getElementById("f-cargo").value    = f.cargo    || "";
-  document.getElementById("f-admissao").value = f.admissao || "";
-  document.getElementById("f-telefone").value = f.telefone || "";
-  document.getElementById("f-obs").value      = f.obs      || "";
+
+  const set = (fid, val) => { const el = document.getElementById(fid); if (el) el.value = val || ""; };
+  set("f-nome", f.nome); set("f-cargo", f.cargo); set("f-admissao", f.admissao);
+  set("f-salario", f.salario > 0 ? f.salario.toFixed(2).replace(".",",") : "");
+  set("f-telefone", f.telefone); set("f-obs", f.obs);
+  set("f-nacionalidade", f.nacionalidade); set("f-estadocivil", f.estadocivil);
+  set("f-nascimento", f.nascimento); set("f-conjuge", f.conjuge);
+  set("f-localnasc", f.localnasc); set("f-ufnasc", f.ufnasc);
+  set("f-nomemae", f.nomemae);
+  set("f-cpf", f.cpf); set("f-rg", f.rg); set("f-orgaoemissor", f.orgaoemissor);
+  set("f-ufrg", f.ufrg); set("f-emissaorg", f.emissaorg);
+  set("f-ctps", f.ctps); set("f-seriectps", f.seriectps);
+  set("f-ufctps", f.ufctps); set("f-emissaoctps", f.emissaoctps);
+  set("f-endereco", f.endereco); set("f-cep", f.cep);
+  set("f-cidade", f.cidade); set("f-uf", f.uf);
+
+  if (f.instrucao) { const r = document.querySelector(`input[name="instrucao"][value="${f.instrucao}"]`); if (r) r.checked = true; }
+  if (f.instrucaoStatus) { const r = document.querySelector(`input[name="instrucao_status"][value="${f.instrucaoStatus}"]`); if (r) r.checked = true; }
+
   const porProd = ehPorProducao(f.cargo);
   document.getElementById("wrap-salario").style.display = porProd ? "none" : "";
-  atualizarLabelSalario(f.cargo);
-  document.getElementById("f-salario").value = (!porProd && f.salario > 0)
-    ? f.salario.toFixed(2).replace(".", ",") : "";
-  const form = document.getElementById("form");
-  const fab  = document.getElementById("fab");
-  form.style.display = "block";
-  fab.classList.add("open");
-  document.getElementById("f-nome").focus();
+  document.getElementById("lbl-salario").textContent = ehServente(f.cargo) ? "Diária (R$)" : "Salário (R$)";
+  document.getElementById("btn-submit").textContent = "✓ Salvar alterações";
+
+  document.getElementById("form-overlay").style.display = "flex";
+  document.getElementById("fab").classList.add("open");
 }
 
 function toggleAtivo(id) {
@@ -174,34 +206,179 @@ function toggleAtivo(id) {
 function excluir(id) {
   const f = funcionariosCache[id];
   if (!f) return;
-  const info = `${f.nome} — ${f.cargo}`;
-  const senha = prompt("EXCLUIR FUNCIONÁRIO?\n\n" + info + "\n\nDigite a senha:");
+  const senha = prompt(`EXCLUIR FUNCIONÁRIO?\n\n${f.nome} — ${f.cargo}\n\nDigite a senha:`);
   if (senha === null) return;
-  if (senha !== "4512") {
-    alert("Senha incorreta.");
-    return;
-  }
+  if (senha !== "4512") { alert("Senha incorreta."); return; }
   col.doc(id).delete();
 }
 
-function toggleForm() {
-  const form = document.getElementById("form");
-  const fab  = document.getElementById("fab");
-  const open = form.style.display === "none" || form.style.display === "";
-  form.style.display = open ? "block" : "none";
-  fab.classList.toggle("open", open);
-  if (open) {
-    document.getElementById("f-nome").focus();
-  } else {
-    editandoId = null;
-    document.getElementById("form-titulo").textContent = "Novo Funcionário";
-    document.getElementById("btn-submit").textContent = "+ Cadastrar";
-    document.getElementById("wrap-salario").style.display = "";
-    document.getElementById("form").reset();
-    document.getElementById("f-admissao").value = hoje();
+// ── Assinatura ────────────────────────────────────────────
+let _canvasInited = false;
+
+function irParaAssinatura() {
+  document.getElementById("form-overlay").style.display = "none";
+  document.getElementById("assin-overlay").style.display = "flex";
+  if (!_canvasInited) { initCanvas(); _canvasInited = true; }
+}
+
+function voltarParaForm() {
+  document.getElementById("assin-overlay").style.display = "none";
+  document.getElementById("form-overlay").style.display = "flex";
+}
+
+function initCanvas() {
+  const canvas = document.getElementById("assin-canvas");
+  const ctx    = canvas.getContext("2d");
+
+  function resize() {
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    if (w === 0 || h === 0) return;
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    canvas.width  = w * window.devicePixelRatio;
+    canvas.height = h * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    ctx.strokeStyle = "#1a3322";
+    ctx.lineWidth   = 2.5;
+    ctx.lineCap     = "round";
+    ctx.lineJoin    = "round";
   }
+  resize();
+
+  let drawing = false;
+
+  function pos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const src  = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+  }
+
+  canvas.addEventListener("mousedown",  e => { drawing = true; ctx.beginPath(); const p = pos(e); ctx.moveTo(p.x, p.y); e.preventDefault(); });
+  canvas.addEventListener("mousemove",  e => { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); });
+  canvas.addEventListener("mouseup",    () => drawing = false);
+  canvas.addEventListener("mouseleave", () => drawing = false);
+  canvas.addEventListener("touchstart", e => { drawing = true; ctx.beginPath(); const p = pos(e); ctx.moveTo(p.x, p.y); e.preventDefault(); }, { passive: false });
+  canvas.addEventListener("touchmove",  e => { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); }, { passive: false });
+  canvas.addEventListener("touchend",   () => drawing = false);
+}
+
+function limparAssinatura() {
+  const canvas = document.getElementById("assin-canvas");
+  canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// ── PDF ───────────────────────────────────────────────────
+function gerarPDF() {
+  if (typeof window.jspdf === "undefined") { alert("Biblioteca PDF não carregada. Verifique sua conexão."); return; }
+  const { jsPDF } = window.jspdf;
+  const doc  = new jsPDF({ unit: "mm", format: "a4" });
+  const dados = lerCampos();
+  const W    = 210;
+  const mg   = 14;
+  let y      = mg;
+
+  // Cabeçalho
+  doc.setFillColor(26, 51, 34);
+  doc.rect(0, 0, W, 22, "F");
+  doc.setTextColor(165, 214, 167);
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  doc.text("GREEN WALL — CONSTRUÇÃO E ACABAMENTO", W / 2, 10, { align: "center" });
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("FICHA DE REGISTRO DE EMPREGADO", W / 2, 17, { align: "center" });
+
+  y = 28;
+  doc.setTextColor(0);
+
+  function titulo(txt) {
+    doc.setFillColor(232, 245, 233);
+    doc.rect(mg, y, W - mg * 2, 6, "F");
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(26, 51, 34);
+    doc.text(txt.toUpperCase(), mg + 2, y + 4.2);
+    doc.setTextColor(0);
+    doc.setFont("helvetica", "normal");
+    y += 8;
+  }
+
+  function campo(label, valor, x, largura) {
+    doc.setFontSize(6.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(120);
+    doc.text(label.toUpperCase(), x, y);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0);
+    doc.setFontSize(8.5);
+    doc.text(valor || "—", x, y + 4.5);
+    doc.setDrawColor(200);
+    doc.line(x, y + 5.5, x + largura - 2, y + 5.5);
+    doc.setDrawColor(0);
+  }
+
+  function linha2(l1, v1, l2, v2) {
+    const half = (W - mg * 2 - 4) / 2;
+    campo(l1, v1, mg, half);
+    campo(l2, v2, mg + half + 4, half);
+    y += 12;
+  }
+
+  function linha1(label, valor) {
+    campo(label, valor, mg, W - mg * 2);
+    y += 12;
+  }
+
+  titulo("Identificação");
+  linha1("Nome Completo", dados.nome);
+  linha2("Cargo", dados.cargo, "Admissão", dados.admissao);
+  linha2("Salário / Diária", dados.salario > 0 ? fmtMoeda(dados.salario) : "Por produção", "Telefone", dados.telefone);
+
+  titulo("Dados Pessoais");
+  linha2("Nacionalidade", dados.nacionalidade, "Estado Civil", dados.estadocivil);
+  linha2("Data de Nascimento", dados.nascimento, "Cônjuge", dados.conjuge);
+  linha2("Local de Nascimento", dados.localnasc, "UF Nasc.", dados.ufnasc);
+  linha1("Nome da Mãe", dados.nomemae);
+  const instrucaoTxt = [dados.instrucao, dados.instrucaoStatus].filter(Boolean).join(" — ");
+  linha2("Grau de Instrução", instrucaoTxt, "Obs", dados.obs);
+
+  titulo("Documentos");
+  linha2("CPF", dados.cpf, "Identidade (RG)", dados.rg);
+  linha2("Órgão Emissor", dados.orgaoemissor, "UF / Data Emissão RG", `${dados.ufrg} — ${dados.emissaorg}`);
+  linha2("CTPS", dados.ctps, "Série / UF / Emissão CTPS", `${dados.seriectps} / ${dados.ufctps} — ${dados.emissaoctps}`);
+
+  titulo("Endereço");
+  linha1("Endereço", dados.endereco);
+  linha2("CEP", dados.cep, "Cidade / UF", `${dados.cidade} — ${dados.uf}`);
+
+  // Assinatura
+  y += 4;
+  if (y > 240) { doc.addPage(); y = 20; }
+
+  titulo("Assinatura");
+  const canvas = document.getElementById("assin-canvas");
+  const assinImg = canvas.toDataURL("image/png");
+  const canvasVazio = !canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data.some(v=>v!==0);
+
+  if (!canvasVazio) {
+    doc.addImage(assinImg, "PNG", mg, y, 80, 30);
+  }
+
+  doc.setDrawColor(100);
+  doc.line(mg, y + 33, mg + 80, y + 33);
+  doc.setFontSize(7);
+  doc.setTextColor(120);
+  doc.text(dados.nome || "Assinatura do Funcionário", mg + 40, y + 37, { align: "center" });
+
+  // Data no rodapé
+  doc.setFontSize(7);
+  doc.setTextColor(150);
+  doc.text(`Emitido em ${new Date().toLocaleDateString("pt-BR")}`, W - mg, 290, { align: "right" });
+
+  const nomeArq = (dados.nome || "funcionario").replace(/\s+/g, "_").toLowerCase();
+  doc.save(`ficha_${nomeArq}.pdf`);
 }
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./sw.js");
+  navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" });
 }
