@@ -1,9 +1,10 @@
-const VERSION = "func-v14";
+const VERSION = "func-v15";
 const ASSETS = [
   "./index.html",
   "./style.css?v=10",
-  "./app.js?v=14",
-  "./manifest.json"
+  "./app.js?v=15",
+  "./manifest.json",
+  "./Logo-gw.png"
 ];
 
 self.addEventListener("install", e => {
