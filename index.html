@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="Funcionários" />
   <title>Cadastro de Funcionários</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./style.css?v=10" />
+  <link rel="stylesheet" href="./style.css?v=11" />
 </head>
 <body>
 
@@ -33,6 +33,15 @@
         <div class="form-group full">
           <label>Nome completo *</label>
           <input type="text" id="f-nome" placeholder="Nome do funcionário" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full face-status-row">
+          <div class="face-preview" id="face-preview">👤</div>
+          <div class="face-info">
+            <div class="face-label" id="face-label">Face não cadastrada</div>
+            <button type="button" class="btn-face" id="btn-face" onclick="abrirCameraFace()">📷 Cadastrar Face</button>
+          </div>
         </div>
       </div>
       <div class="form-row">
@@ -238,9 +247,24 @@
   </div>
 </div>
 
+<!-- CAPTURA DE FACE -->
+<div id="face-overlay" class="face-overlay" style="display:none">
+  <video id="video-face" autoplay muted playsinline></video>
+  <div class="face-oval"></div>
+  <div class="face-top">
+    <button type="button" class="btn-voltar" onclick="cancelarCapturaFace()">← Voltar</button>
+    <div class="face-title">CADASTRAR FACE</div>
+  </div>
+  <div class="face-bot">
+    <div class="face-hint" id="face-hint">Carregando...</div>
+    <button type="button" class="btn-capture" id="btn-capture-face" onclick="capturarFotoFace()" disabled></button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="./app.js?v=15"></script>
+<script src="./app.js?v=16"></script>
 </body>
 </html>

@@ -7,8 +7,9 @@ const firebaseConfig = {
   appId: "1:472820177992:web:2e1b98c9f6ac3a823d0c7d"
 };
 
-const VERSAO = "2.8";
+const VERSAO = "2.9";
 const CARGOS_POR_PRODUCAO = ["PINTOR", "RASPADOR"];
+const MODELS_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights';
 
 document.getElementById("versao-app").textContent = "v" + VERSAO;
 
@@ -39,6 +40,10 @@ function ehPorProducao(cargo) { return CARGOS_POR_PRODUCAO.includes((cargo||"").
 
 let funcionariosCache = {};
 let editandoId = null;
+let modelsLoaded = false;
+let faceStream = null;
+let pendingFaceDescriptor = null;
+let pendingFotoThumb = null;
 
 // ── Lista ─────────────────────────────────────────────────
 function render(docs) {
@@ -90,6 +95,9 @@ function abrirFormulario() {
   document.getElementById("form-overlay").style.display = "flex";
   document.getElementById("fab").classList.add("open");
   document.getElementById("f-nome").focus();
+  pendingFaceDescriptor = null;
+  pendingFotoThumb = null;
+  atualizarStatusFace();
 }
 
 function fecharFormulario() {
@@ -280,6 +288,102 @@ function editarFuncionario(id) {
   document.getElementById("lbl-salario").textContent = ehServente(f.cargo) ? "Diária (R$)" : "Salário (R$)";
   document.getElementById("form-overlay").style.display = "flex";
   document.getElementById("fab").classList.add("open");
+
+  pendingFaceDescriptor = null;
+  pendingFotoThumb = null;
+  atualizarStatusFace();
+}
+
+// ── Cadastro de Face ────────────────────────────────────────
+function atualizarStatusFace() {
+  const preview = document.getElementById("face-preview");
+  const label   = document.getElementById("face-label");
+  const btn     = document.getElementById("btn-face");
+  const atual   = editandoId ? funcionariosCache[editandoId] : null;
+  const thumb   = pendingFotoThumb || (atual && atual.fotoThumb) || null;
+  const cadastrado = !!pendingFaceDescriptor || !!(atual && atual.faceDescriptor);
+
+  preview.innerHTML = thumb ? `<img src="${thumb}" alt="face">` : "👤";
+  label.textContent = cadastrado ? "✓ Face cadastrada" : "Face não cadastrada";
+  btn.textContent   = cadastrado ? "🔄 Atualizar Face" : "📷 Cadastrar Face";
+}
+
+async function abrirCameraFace() {
+  document.getElementById("face-hint").textContent = "Carregando...";
+  document.getElementById("btn-capture-face").disabled = true;
+  document.getElementById("face-overlay").style.display = "block";
+
+  if (!modelsLoaded) {
+    try {
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODELS_URL),
+        faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODELS_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODELS_URL),
+      ]);
+      modelsLoaded = true;
+    } catch (e) {
+      alert("Erro ao carregar reconhecimento facial. Verifique a conexão.");
+      cancelarCapturaFace();
+      return;
+    }
+  }
+
+  const video = document.getElementById("video-face");
+  try {
+    faceStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+  } catch (e) {
+    alert("Não foi possível acessar a câmera. Verifique as permissões.");
+    cancelarCapturaFace();
+    return;
+  }
+  video.srcObject = faceStream;
+  await new Promise(r => { video.onloadedmetadata = r; });
+  await video.play();
+
+  document.getElementById("face-hint").textContent = "Posicione o rosto no oval e capture";
+  document.getElementById("btn-capture-face").disabled = false;
+}
+
+function cancelarCapturaFace() {
+  pararFaceStream();
+  document.getElementById("face-overlay").style.display = "none";
+}
+
+function pararFaceStream() {
+  if (faceStream) { faceStream.getTracks().forEach(t => t.stop()); faceStream = null; }
+}
+
+async function capturarFotoFace() {
+  const video = document.getElementById("video-face");
+  document.getElementById("face-hint").textContent = "Processando...";
+  document.getElementById("btn-capture-face").disabled = true;
+
+  const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.5 });
+  const det  = await faceapi.detectSingleFace(video, opts).withFaceLandmarks(true).withFaceDescriptor();
+
+  if (!det) {
+    document.getElementById("face-hint").textContent = "Nenhum rosto detectado. Tente novamente.";
+    document.getElementById("btn-capture-face").disabled = false;
+    return;
+  }
+
+  pendingFotoThumb = capturarThumbFace(video, det.detection.box);
+  pendingFaceDescriptor = Array.from(det.descriptor);
+
+  pararFaceStream();
+  document.getElementById("face-overlay").style.display = "none";
+  atualizarStatusFace();
+}
+
+function capturarThumbFace(video, box) {
+  const canvas = document.createElement("canvas");
+  const size = 120;
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const vw = video.videoWidth;
+  const sx = vw - box.x - box.width; // mirror X
+  ctx.drawImage(video, sx, box.y, box.width, box.height, 0, 0, size, size);
+  return canvas.toDataURL("image/jpeg", 0.7);
 }
 
 function toggleAtivo(id) {
@@ -355,8 +459,11 @@ function irParaAssinaturaParaSalvar() {
   // Se editando e já tem assinatura salva, salva direto sem pedir nova assinatura
   if (editandoId && funcionariosCache[editandoId] && funcionariosCache[editandoId].assinatura) {
     const dados = lerCampos();
+    if (pendingFaceDescriptor) { dados.faceDescriptor = pendingFaceDescriptor; dados.fotoThumb = pendingFotoThumb; }
     col.doc(editandoId).update(dados);
     editandoId = null;
+    pendingFaceDescriptor = null;
+    pendingFotoThumb = null;
     fecharFormulario();
     alert('Dados atualizados com sucesso!');
     return;
@@ -396,6 +503,7 @@ function assinarESalvar() {
   if (canvasVazio()) { alert('Por favor, assine antes de salvar.'); return; }
   const dados = lerCampos();
   if (!dados.nome || !dados.cargo) { alert('Nome e Cargo são obrigatórios.'); return; }
+  if (pendingFaceDescriptor) { dados.faceDescriptor = pendingFaceDescriptor; dados.fotoThumb = pendingFotoThumb; }
   const canvas = document.getElementById('assin-canvas');
   const assinatura = canvas.toDataURL('image/png');
   if (editandoId) {
@@ -404,6 +512,8 @@ function assinarESalvar() {
   } else {
     col.add({ ...dados, assinatura, ativo: true, criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
   }
+  pendingFaceDescriptor = null;
+  pendingFotoThumb = null;
   document.getElementById('assin-overlay').style.display = 'none';
   document.getElementById('fab').classList.remove('open');
   consultandoId = null;
